@@ -1,0 +1,4042 @@
+ ---
+title: "Empleabilidad"
+author: "Diego Caro"
+date: "2024-07-30"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+#Importar las bases de datos
+
+
+
+library(haven)
+
+
+
+
+
+CASEN1990= read_sav("C:/Users/BIBLIOTECA/OneDrive - Universidad de Chile/Archivos UCH/Octavo Semestre/Espacio Público/Bases CASEN/Casen1990/Casen1990.sav")
+CASEN1990$anio =1990
+
+
+
+CASEN1992= read_sav("C:/Users/BIBLIOTECA/OneDrive - Universidad de Chile/Archivos UCH/Octavo Semestre/Espacio Público/Bases CASEN/Casen1992/Casen1992.sav")
+CASEN1992$anio =1992
+
+unique(CASEN1992$o6)
+
+
+install.packages("writexl")
+
+library(writexl)
+
+# Usar barras inclinadas o barras invertidas dobles en la ruta
+write_xlsx(CASEN1992, "C:/Users/BIBLIOTECA/OneDrive - Universidad de Chile/Archivos UCH/Octavo Semestre/Espacio Público/Bases CASEN/Casen1992.xlsx")
+
+
+
+
+
+
+
+
+
+
+
+
+CASEN2000= read_dta("C:/Users/BIBLIOTECA/OneDrive - Universidad de Chile/Archivos UCH/Octavo Semestre/Espacio Público/Bases CASEN/Casen2000/base_de_datos_2000.dta")
+CASEN2000$anio=2000
+
+
+
+############ ? ##############
+CASEN2011= read_sav("C:/Users/BIBLIOTECA/OneDrive - Universidad de Chile/Archivos UCH/Octavo Semestre/Espacio Público/Bases CASEN/casen2011spss_03122013_spss.sav")
+CASEN2011$anio=2011
+
+names(CASEN2011)[names(CASEN2011) == "daur"] <- "dau"
+
+
+
+
+
+
+CASEN2017= read_sav("C:/Users/BIBLIOTECA/OneDrive - Universidad de Chile/Archivos UCH/Octavo Semestre/Espacio Público/Bases CASEN/casen_2017_spss/Casen 2017.sav")
+CASEN2017$anio=2017
+
+CASEN2017$o1=ifelse(CASEN2017$o1==2,0,1)
+
+
+CASEN2017$rama4
+
+
+
+
+
+
+
+CASEN2022= read_sav("C:/Users/BIBLIOTECA/OneDrive - Universidad de Chile/Archivos UCH/Octavo Semestre/Espacio Público/Bases CASEN/Base de datos Casen 2022 SPSS_18 marzo 2024.sav/Base de datos Casen 2022 SPSS_18 marzo 2024.sav")
+CASEN2022$anio =2022
+
+
+
+unique(CASEN2022$rama1)
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+```{r}
+#Rango etario entre 30 y 40 años.
+
+
+library(dplyr)
+
+
+#Filtramos para mayores o igual a 30 y menores o igual a 40. #Además añadimos una columna con el año.
+
+#Hacemos una dummy sobre empleabilidad , 1 si trabajó la semana pasada 0 sino.
+
+CASEN19903040= CASEN1990 %>%
+  filter(CASEN1990$edad >=30 & CASEN1990$edad<=40) 
+
+CASEN19903040$anio = 1990
+
+CASEN19903040$o1=ifelse(CASEN19903040$o1==2,0,1)
+
+
+
+o1990 <- sum(CASEN19903040$o1, na.rm = TRUE)
+
+
+CASEN19903040$qau= ifelse(CASEN19903040$dau== 1 & 2, 1, ifelse(CASEN19903040$dau== 3 & 4, 2,ifelse(CASEN19903040$dau== 5 & 6, 3,ifelse(CASEN19903040$dau== 7 & 8, 4,ifelse(CASEN19903040$dau== 9 & 10, 5,"NA" )))))
+
+
+
+
+CASEN20223040= CASEN2022 %>%
+  filter(CASEN2022$edad >=30 & CASEN2022$edad<=40) 
+
+
+CASEN20223040$anio=2022
+
+
+CASEN20223040$o1=ifelse(CASEN20223040$o1==2,0,1)
+
+
+o2022 <- sum(CASEN20223040$o1, na.rm = TRUE)
+
+
+CASEN20223040$qau= ifelse(CASEN20223040$dau== 1 & 2, 1, ifelse(CASEN20223040$dau== 3 & 4, 2,ifelse(CASEN20223040$dau== 5 & 6, 3,ifelse(CASEN20223040$dau== 7 & 8, 4,ifelse(CASEN20223040$dau== 9 & 10, 5,"NA" )))))
+
+
+
+library(dplyr)
+
+
+
+#Obtenemos una base de datos más estilizada solo con los datos requeridos
+
+#######"anio", #"edad", #"dau", #"o1"
+
+df1990 = CASEN19903040 %>%select(anio, edad, qau, o1)
+
+df2022 = CASEN20223040 %>%select(anio, edad, qau, o1)
+
+
+CASEN3040 = rbind(df1990, df2000, df2011, df2022)
+
+
+
+
+library(dplyr)
+
+# Calcular el porcentaje de ocupados por año y decil
+porcentaje_ocupados3040 <- aggregate(o1 ~ anio + qau, data = CASEN3040, FUN = function(x) mean(x) * 100)
+
+
+
+#Se crea el gráfico
+
+
+library(ggplot2)
+
+g3040=ggplot(porcentaje_ocupados3040, aes(x = qu, y = o1, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Porcentaje de Ocupados por Año y Decil entre 30 y 40 años",
+       x = "Decil",
+       y = "Porcentaje de Ocupados",
+       fill = "Año") +
+  scale_x_continuous(breaks = seq(min(porcentaje_ocupados3040$dau), max(porcentaje_ocupados3040$dau), by = 1)) +
+  theme_minimal()
+
+
+
+
+ggsave("Ocupados3040.png", plot = g3040, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+#Rango etario entre 30 y 50 años.
+
+
+library(dplyr)
+
+
+#Filtramos para mayores o igual a 30 y menores o igual a 40. #Además añadimos una columna con el año.
+
+#Hacemos una dummy sobre empleabilidad , 1 si trabajó la semana pasada 0 sino.
+
+CASEN19903050= CASEN1990 %>%
+  filter(CASEN1990$edad >=30 & CASEN1990$edad<=50) 
+
+CASEN19903050$anio = 1990
+
+CASEN19903050$o1=ifelse(CASEN19903050$o1==2,0,1)
+
+
+
+o1990 <- sum(CASEN19903050$o1, na.rm = TRUE)
+
+
+CASEN19903050$qau= ifelse(CASEN19903050$dau== 1 & 2, 1, ifelse(CASEN19903050$dau== 3 & 4, 2,ifelse(CASEN19903050$dau== 5 & 6, 3,ifelse(CASEN19903050$dau== 7 & 8, 4,ifelse(CASEN19903050$dau== 9 & 10, 5,"NA" )))))
+
+
+
+
+
+
+
+CASEN20223050= CASEN2022 %>%
+  filter(CASEN2022$edad >=30 & CASEN2022$edad<=50) 
+
+
+CASEN20223050$anio=2022
+
+
+CASEN20223050$o1=ifelse(CASEN20223050$o1==2,0,1)
+
+
+o2022 <- sum(CASEN20223050$o1, na.rm = TRUE)
+
+
+
+CASEN20223050$qau= ifelse(CASEN20223050$dau== 1 & 2, 1, ifelse(CASEN20223050$dau== 3 & 4, 2,ifelse(CASEN20223050$dau== 5 & 6, 3,ifelse(CASEN20223050$dau== 7 & 8, 4,ifelse(CASEN20223050$dau== 9 & 10, 5,"NA" )))))
+
+
+
+library(dplyr)
+
+
+
+
+
+
+#Obtenemos una base de datos más estilizada solo con los datos requeridos
+
+
+#######"anio", #"edad", #"dau", #"o1"
+
+df1990A = CASEN19903050 %>%select(anio, edad, dau, o1)
+
+
+df2022A = CASEN20223050 %>%select(anio, edad, dau, o1)
+
+
+CASEN3050 = rbind(df1990, df2000, df2011, df2022)
+
+
+
+
+library(dplyr)
+
+# Calcular el porcentaje de ocupados por año y decil
+porcentaje_ocupados3050 <- aggregate(o1 ~ anio + dau, data = CASEN3050, FUN = function(x) mean(x) * 100)
+
+
+
+
+library(ggplot2)
+
+g3050=ggplot(porcentaje_ocupados3050, aes(x = dau, y = o1, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Porcentaje de Ocupados por Año y Quintil entre 30 y 50 años",
+       x = "Decil",
+       y = "Porcentaje de Ocupados",
+       fill = "Año") +
+  scale_x_continuous(breaks = seq(min(porcentaje_ocupados3050$dau), max(porcentaje_ocupados3050$dau), by = 1)) +
+  theme_minimal()
+
+
+
+
+
+ggsave("Ocupados3050.png", plot = g3050, width = 10, height = 6, dpi = 300)
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+#Jóvenes
+
+
+#Rango etario entre 25 y 29 años.
+
+
+library(dplyr)
+
+
+#Filtramos para mayores o igual a 20 y menores o igual a 29 #Además añadimos una columna con el año.
+
+#Hacemos una dummy sobre empleabilidad , 1 si trabajó la semana pasada 0 sino.
+
+CASEN19902029= CASEN1990 %>%
+  filter(CASEN1990$edad >=15 & CASEN1990$edad<=21) 
+
+CASEN19902029$anio = 1990
+
+CASEN19902029$o1=ifelse(CASEN19902029$o1==2,0,1)
+
+
+CASEN19902029$qau= ifelse(CASEN19902029$dau== 1 & 2, 1, ifelse(CASEN19902029$dau== 3 & 4, 2,ifelse(CASEN19902029$dau== 5 & 6, 3,ifelse(CASEN19902029$dau== 7 & 8, 4,ifelse(CASEN19902029$dau== 9 & 10, 5,"NA" )))))
+
+
+
+
+
+
+CASEN20222029= CASEN2022 %>%
+filter(CASEN2022$edad >=15 & CASEN2022$edad<=21) 
+
+CASEN20222029$anio=2022
+
+
+CASEN20222029$o1=ifelse(CASEN20222029$o1==2,0,1)
+
+CASEN20222029$qau= ifelse(CASEN20222029$dau== 1 & 2, 1, ifelse(CASEN20222029$dau== 3 & 4, 2,ifelse(CASEN20222029$dau== 5 & 6, 3,ifelse(CASEN20222029$dau== 7 & 8, 4,ifelse(CASEN20222029$dau== 9 & 10, 5,"NA" )))))
+
+
+
+
+
+
+#Obtenemos una base de datos más estilizada solo con los datos requeridos
+
+
+#######"anio", #"edad", #"dau", #"o1"
+
+df1990B = CASEN19902029 %>%select(anio, edad, dau, o1, esc, expr,sexo)
+
+
+
+df2022B = CASEN20222029 %>%select(anio, edad, dau, o1,esc, expr,sexo)
+
+
+
+
+CASEN2029 = rbind(df1990B, df2022B)
+
+
+
+
+
+library(dplyr)
+
+# Calcular el porcentaje de ocupados por año y decil
+porcentaje_ocupados2029 <- aggregate(o1 ~ anio + dau, data = CASEN2029, FUN = function(x) mean(x) * 100)
+
+
+
+
+library(ggplot2)
+
+g2029=ggplot(porcentaje_ocupados2029, aes(x = dau, y = o1, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Porcentaje de Ocupados por Año y Decil entre 25 y 29 años",
+       x = "Decil",
+       y = "Porcentaje de Ocupados",
+       fill = "Año") +
+  scale_x_continuous(breaks = seq(min(porcentaje_ocupados2029$dau), max(porcentaje_ocupados2029$dau), by = 1)) +
+  theme_minimal()
+
+
+
+
+ggsave("OcupadosJóvenes.png", plot = g2029, width = 10, height = 6, dpi = 300)
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+
+#######Escolaridad
+
+
+porcentaje_escolaridadD <- aggregate(esc ~ anio + dau, data = CASEN2029, FUN = function(x) mean(x))
+
+
+
+
+library(ggplot2)
+
+ggplot(porcentaje_escolaridadD, aes(x = dau, y = esc, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Promedio de Escolaridad",
+       x = "Decil",
+       y = "Promedio de Años de Escolaridad",
+       fill = "Año") +
+  scale_x_continuous(breaks = seq(min(porcentaje_ocupados2029$dau), max(porcentaje_ocupados2029$dau), by = 1)) +
+  theme_minimal()
+
+
+
+
+#Para 2017
+
+
+CASEN20172529=CASEN2017%>%
+filter(CASEN2017$edad >=25 & CASEN2017$edad<=29) 
+
+
+df2017B= CASEN20172529 %>%select(anio, edad, dau, o1,esc, expr,sexo)
+
+
+
+```
+
+
+
+
+```{r}
+
+
+
+######################     FACTORES DE EXPANSIÓN          ##############################
+
+#Se multiplica la dummy ocupado por su factor de expansión
+
+
+df1990B$ocupacion= df1990B$o1*df1990B$expr
+
+
+df1990B$qau= ifelse(df1990B$dau== 1 & 2, 1, ifelse(df1990B$dau== 3 & 4, 2,ifelse(df1990B$dau== 5 & 6, 3,ifelse(df1990B$dau== 7 & 8, 4,ifelse(df1990B$dau== 9 & 10, 5,"NA" )))))
+
+
+
+
+df2022B$ocupacion= df2022B$o1*df2022B$expr
+
+
+
+
+df2022B$qau= ifelse(df2022B$dau== 1 & 2, 1, ifelse(df2022B$dau== 3 & 4, 2,ifelse(df2022B$dau== 5 & 6, 3,ifelse(df2022B$dau== 7 & 8, 4,ifelse(df2022B$dau== 9 & 10, 5,"NA" )))))
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los ocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_list <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990B, df2022B)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(5)
+  f <- numeric(5)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:5) {
+    v[i] <- sum(df$ocupacion[df$qau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$qau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 5),
+    quintil = 1:5,
+    ocupacion = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_list[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combined <- do.call(rbind, resultados_list)
+
+# Ver los resultados
+print(resultados_combined)
+
+
+#Para caclular el promedio dividimos los ocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+resultados_combined$promedio= resultados_combined$ocupacion/resultados_combined$expr
+
+
+
+#Graficamos los promedios
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_jovenes_fe= ggplot(resultados_combined, aes(x = as.factor(quintil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Ocupados por Quintil y Año",
+    x = "Quintil",
+    y = "Porcentaje de Ocupados",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("OcupadosJóvenesFE.png", plot = grafico_jovenes_fe, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+```
+
+
+
+
+
+```{r}
+
+################### SOLO HOMBRES
+
+library(dplyr)
+
+
+
+df1990H=df1990B %>%
+  filter(df1990B$sexo==1)
+
+
+df1990H$qau <- ifelse(df1990H$dau == 1 | df1990H$dau == 2, 1, 
+                ifelse(df1990H$dau == 3 | df1990H$dau == 4, 2,
+                ifelse(df1990H$dau == 5 | df1990H$dau == 6, 3,
+                ifelse(df1990H$dau == 7 | df1990H$dau == 8, 4,
+                ifelse(df1990H$dau == 9 | df1990H$dau == 10, 5, 0)))))
+
+
+
+df2022H=df2022B %>%
+  filter(df2022B$sexo==1)
+
+df2022H$qau <- ifelse(df2022H$dau == 1 | df2022H$dau == 2, 1, 
+                ifelse(df2022H$dau == 3 | df2022H$dau == 4, 2,
+                ifelse(df2022H$dau == 5 | df2022H$dau == 6, 3,
+                ifelse(df2022H$dau == 7 | df2022H$dau == 8, 4,
+                ifelse(df2022H$dau == 9 | df2022H$dau == 10, 5, 0)))))
+
+
+#### Creamos un dataframe que contenga la suma de los ocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listH <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990H, df2022H)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(5)
+  f <- numeric(5)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:5) {
+    v[i] <- sum(df$ocupacion[df$qau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$qau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 5),
+    quintil = 1:5,
+    ocupacion = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listH[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedH <- do.call(rbind, resultados_listH)
+
+# Ver los resultados
+print(resultados_combinedH)
+
+
+#Para caclular el promedio dividimos los ocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+resultados_combinedH$promedio= resultados_combinedH$ocupacion/resultados_combinedH$expr
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_jovenes_h= ggplot(resultados_combinedH, aes(x = as.factor(quintil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Hombres Ocupados por Quintil y Año",
+    x = "Decil",
+    y = "Porcentaje de Ocupados",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("OcupadosJóvenesH.png", plot = grafico_jovenes_h, width = 10, height = 6, dpi = 300)
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+
+
+################## SOLO MUJERES
+
+
+df1990M=df1990B %>%
+  filter(df1990B$sexo==2)
+
+
+df1990M$qau= ifelse(df1990M$dau== 1 & 2, 1, ifelse(df1990M$dau== 3 & 4, 2,ifelse(df1990M$dau== 5 & 6, 3,ifelse(df1990M$dau== 7 & 8, 4,ifelse(df1990M$dau== 9 & 10, 5,0 )))))
+
+
+df2022M=df2022B %>%
+  filter(df2022B$sexo==2)
+
+
+df2022M$qau= ifelse(df2022M$dau== 1 & 2, 1, ifelse(df2022M$dau== 3 & 4, 2,ifelse(df2022M$dau== 5 & 6, 3,ifelse(df2022M$dau== 7 & 8, 4,ifelse(df2022M$dau== 9 & 10, 5,0 )))))
+
+
+
+#### Creamos un dataframe que contenga la suma de los ocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listM <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990M, df2022M)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(5)
+  f <- numeric(5)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:5) {
+    v[i] <- sum(df$ocupacion[df$qau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$qau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 5),
+    quintil = 1:5,
+    ocupacion = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listM[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedM <- do.call(rbind, resultados_listM)
+
+# Ver los resultados
+print(resultados_combinedM)
+
+
+
+#Para caclular el promedio dividimos los ocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+resultados_combinedM$promedio= resultados_combinedM$ocupacion/resultados_combinedM$expr
+
+
+
+#Graficamos los promedios
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_jovenes_m= ggplot(resultados_combinedM, aes(x = as.factor(quintil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Mujeres Ocupadas por Quintil y Año",
+    x = "Quintil",
+    y = "Porcentaje de Ocupados",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("OcupadosJóvenesM.png", plot = grafico_jovenes_m, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+```
+
+
+
+
+```{r}
+
+########## Ambos juntos
+
+# Verifica que los DataFrames no estén vacíos
+print(resultados_combinedH)
+print(resultados_combinedM)
+
+# Verifica las estructuras de los DataFrames
+str(resultados_combinedH)
+str(resultados_combinedM)
+
+# Asegurarse de que no haya valores NA en la columna 'promedio'
+resultados_combinedH <- resultados_combinedH %>% filter(!is.na(promedio))
+resultados_combinedM <- resultados_combinedM %>% filter(!is.na(promedio))
+
+# Añadir una columna de sexo a cada dataframe
+resultados_combinedH$sexo <- "Hombres"
+resultados_combinedM$sexo <- "Mujeres"
+
+# Combinar los dos dataframes
+resultados_combined <- rbind(resultados_combinedH, resultados_combinedM)
+
+# Verificar la estructura después de combinar
+print(resultados_combined)
+
+# Graficar el gráfico combinado
+  
+
+```
+
+
+
+
+```{r}
+
+###########  Promedio de años de Escolaridad 
+    
+
+df1990C = CASEN1990 %>%select(anio, edad, dau, esc, sexo)
+
+df1990C=df1990C %>%
+  filter(df1990C$edad >=25 & df1990C$edad<=29)
+
+df1990C=df1990C %>%
+  filter(df1990C$sexo==2)
+
+df2022C = CASEN2022 %>%select(anio, edad, dau, esc, sexo)
+
+df2022C=df2022C %>%
+  filter(df2022C$edad >=25 & df2022C$edad<=29)
+
+df2022C=df2022C %>%
+  filter(df2022C$sexo==2)
+
+
+
+df1990C$qau <- case_when(
+  df1990C$dau %in% c(1, 2) ~ 1,
+  df1990C$dau %in% c(3, 4) ~ 2,
+  df1990C$dau %in% c(5, 6) ~ 3,
+  df1990C$dau %in% c(7, 8) ~ 4,
+  df1990C$dau %in% c(9, 10) ~ 5,
+  TRUE ~ NA_real_  # Usa NA_real_ para valores numéricos
+)
+
+df2022C$qau <- case_when(
+  df2022C$dau %in% c(1, 2) ~ 1,
+  df2022C$dau %in% c(3, 4) ~ 2,
+  df2022C$dau %in% c(5, 6) ~ 3,
+  df2022C$dau %in% c(7, 8) ~ 4,
+  df2022C$dau %in% c(9, 10) ~ 5,
+  TRUE ~ NA_real_  # Usa NA_real_ para valores numéricos
+)
+
+CASENC = rbind(df1990C, df2022C)
+
+library(dplyr)
+
+
+# Calcular el promedio de años de escolaridad por año y decil
+porcentaje_ocupadosC <- aggregate(esc ~ anio + qau, data = CASENC, FUN = function(x) mean(x))
+
+
+
+#Graficamos
+
+
+library(ggplot2)
+
+Promedio_años_esc=ggplot(porcentaje_ocupadosC, aes(x = qau, y = esc, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Promedio de Escolaridad",
+       x = "Quintil",
+       y = "Promedio de Años de Escolaridad",
+       fill = "Año") +
+  theme_minimal()
+
+
+ggsave("xañosesc.png", plot = Promedio_años_esc, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+```
+
+
+
+
+```{r}
+
+#Porcentaje de personas con >12 en educación 
+
+
+df1990B$edsup=ifelse(df1990B$esc>12, 1,0)
+df1990B$edvalor= df1990B$edsup*df1990B$expr
+
+
+
+df2022B$edsup=ifelse(df2022B$esc>12, 1,0)
+df2022B$edvalor= df2022B$edsup*df2022B$expr
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de las personas con mayor a 12 años de estudio (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listE<- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990B, df2022B)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(5)
+  f <- numeric(5)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:5) {
+    v[i] <- sum(df$edvalor[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 5),
+    decil = 1:5,
+    educacion = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listE[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedE <- do.call(rbind, resultados_listE)
+
+# Ver los resultados
+print(resultados_combinedE)
+
+
+#Para caclular el promedio dividimos los quienes estudiaron más de 12 años (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+resultados_combinedE$promedio= resultados_combinedE$educacion/resultados_combinedE$expr
+
+
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_jovenes_e= ggplot(resultados_combinedE, aes(x = as.factor(decil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Personas con Educación Superior por Decil y Año",
+    x = "Decil",
+    y = "Porcentaje",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("OcupadosJóvenesM.png", plot = grafico_jovenes_m, width = 10, height = 6, dpi = 300)
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+ 
+```{r}
+
+##### Porcentaje de inactivos 
+
+########## SOLO HOMBRES
+
+df1990B = CASEN19902029 %>%select(anio, edad, dau, o1, o3, esc, expr,sexo)
+
+df1990B$o3 <- ifelse(is.na(df1990B$o3), NA, ifelse(df1990B$o3 == 1, 0, 1))
+
+names(df1990B)[names(df1990B) == "o3"] <- "o6"
+
+df1990H = df1990B %>%
+  filter(df1990B$sexo ==1)
+
+
+
+
+
+
+
+df2022B = CASEN20222029 %>%select(anio, edad, dau, o1, o6, esc, expr,sexo)
+
+df2022B$o6 <- ifelse(is.na(df2022B$o6), NA, ifelse(df2022B$o6 == 1, 0, 1))
+
+df2022H = df2022B %>%
+  filter(df2022B$sexo ==1)
+
+
+
+
+df1990H$qau <- case_when(
+  df1990H$dau %in% c(1, 2) ~ 1,
+  df1990H$dau %in% c(3, 4) ~ 2,
+  df1990H$dau %in% c(5, 6) ~ 3,
+  df1990H$dau %in% c(7, 8) ~ 4,
+  df1990H$dau %in% c(9, 10) ~ 5,
+  TRUE ~ NA_real_  # Usa NA_real_ para valores numéricos
+)
+
+df2022H$qau <- case_when(
+  df2022H$dau %in% c(1, 2) ~ 1,
+  df2022H$dau %in% c(3, 4) ~ 2,
+  df2022H$dau %in% c(5, 6) ~ 3,
+  df2022H$dau %in% c(7, 8) ~ 4,
+  df2022H$dau %in% c(9, 10) ~ 5,
+  TRUE ~ NA_real_  # Usa NA_real_ para valores numéricos
+)
+
+
+
+#Se multiplica la dymmy inactivo por su respectivo factor de expansión
+
+
+
+df1990H$inactiv= df1990H$o6*df1990H$expr
+
+
+
+df2022H$inactiv= df2022H$o6*df2022H$expr
+
+
+
+
+
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los inactivos (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listF <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990H,df2022H)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(5)
+  f <- numeric(5)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:5) {
+    v[i] <- sum(df$inactiv[df$qau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$qau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 5),
+    quintil = 1:5,
+    inactiv = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listF[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedF <- do.call(rbind, resultados_listF)
+
+# Ver los resultados
+print(resultados_combinedF)
+
+
+
+#Para caclular el promedio dividimos los inactivos (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+resultados_combinedF$promedio= resultados_combinedF$inactiv/resultados_combinedF$expr
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_jovenes_inac= ggplot(resultados_combinedF, aes(x = as.factor(quintil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Inactivos por Quintil y Año",
+    x = "Quintil",
+    y = "Porcentaje de Inactivos",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("JóvenesInactH.png", plot = grafico_jovenes_inac, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+##### Porcentaje de desocupados 
+
+############## SOLO DE HOMBRES
+
+
+df1990B = CASEN19902029 %>%select(anio, edad, dau, o1, o3, esc, expr,sexo)
+
+df1990B$o3 <- ifelse(is.na(df1990B$o3), NA, ifelse(df1990B$o3 == 1, 1, 0))
+
+names(df1990B)[names(df1990B) == "o3"] <- "o6"
+
+df1990H = df1990B %>%
+  filter(df1990B$sexo ==1)
+
+
+
+
+df2000B = CASEN20002029 %>%select(anio, edad, dau, o1, o3, esc, expr,sexo)
+
+df2000B$o3 <- ifelse(is.na(df2000B$o3), NA, ifelse(df2000B$o3 == 1, 1, 0))
+
+names(df2000B)[names(df2000B) == "o3"] <- "o6"
+
+df2000H = df2000B %>%
+  filter(df2000B$sexo ==1)
+
+
+
+
+
+
+df2011B = CASEN20112029 %>%select(anio, edad, dau, o1, o6, esc, expr_r2,sexo)
+
+names(df2011B)[names(df2011B) == "expr_r2"] <- "expr"
+
+df2011B$o6 <- ifelse(is.na(df2011B$o6), NA, ifelse(df2011B$o6 == 1, 1, 0))
+
+df2011H = df2011B %>%
+  filter(df2011B$sexo ==1)
+
+
+
+
+
+
+
+
+
+df2017B= CASEN20172529 %>%select(anio, edad, dau, o1, o6, esc, expr, sexo)
+
+df2017B$o6 <- ifelse(is.na(df2017B$o6), NA, ifelse(df2017B$o6 == 1, 1, 0))
+
+num_na <- sum(is.na(df2022B$o6))
+
+df2017H = df2017B %>%
+  filter(df2017B$sexo ==1)
+
+
+
+
+
+
+df2022B = CASEN20222029 %>%select(anio, edad, dau, o1, o6, esc, expr,sexo)
+
+df2022B$o6 <- ifelse(is.na(df2022B$o6), NA, ifelse(df2022B$o6 == 1, 1, 0))
+
+df2022H = df2022B %>%
+  filter(df2022B$sexo ==1)
+
+
+
+
+
+
+#Se multiplica la dymmy desocupados por su respectivo factor de expansión
+
+df1990H$desocup= df1990H$o6*df1990H$expr
+
+
+
+df2000H$desocup= df2000H$o6*df2000H$expr
+
+
+
+df2011H$desocup= df2011H$o6*df2011H$expr
+
+
+
+df2017H$desocup= df2017H$o6*df2017H$expr
+
+
+
+df2022H$desocup= df2022H$o6*df2022H$expr
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los desocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listG <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990H, df2022H)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$desocup[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    desocupado = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listG[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedG <- do.call(rbind, resultados_listG)
+
+# Ver los resultados
+print(resultados_combinedG)
+
+
+#Para caclular el promedio dividimos los desocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+resultados_combinedG$promedio=resultados_combinedG$desocup/resultados_combinedG$expr
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_jovenes_desocup= ggplot(resultados_combinedG, aes(x = as.factor(decil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Desocupados por Decil y Año",
+    x = "Decil",
+    y = "Porcentaje de Desocupados",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("OcupadosJóvenesDesocup.png", plot = grafico_jovenes_desocup, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+#Porcentaje de jóvenes que están estudian
+
+library(dplyr)
+
+CASEN19902029= CASEN1990 %>%
+  filter(CASEN1990$edad >=25 & CASEN1990$edad<=29) 
+
+CASEN19902029$anio = 1990
+
+CASEN19902029$o1=ifelse(CASEN19902029$o1==2,0,1)
+
+
+#Incluimos las variables de interés en nuestro dataframe
+
+
+
+
+df1990B = CASEN19902029 %>%select(anio, edad, dau, o1, o3, esc, expr, sexo, e2)
+
+df1990B$o3 <- ifelse(is.na(df1990B$o3), NA, ifelse(df1990B$o3 == 1, 1, 0))
+
+names(df1990B)[names(df1990B) == "o3"] <- "o6"
+
+df1990B$qau= ifelse(CASEN19902029$dau== 1 & 2, 1, ifelse(CASEN19902029$dau== 3 & 4, 2,ifelse(CASEN19902029$dau== 5 & 6, 3,ifelse(CASEN19902029$dau== 7 & 8, 4,ifelse(CASEN19902029$dau== 9 & 10, 5,"NA" )))))
+
+
+#Convertimos a 1 como que están estudiando y a 0 los que no.
+
+df1990B$e3 <- ifelse(is.na(df1990B$e2), NA, ifelse(df1990B$e2 == 1, 1, 0))
+
+df1990M = df1990B %>%
+  filter(df1990B$sexo ==2)
+
+
+
+
+
+
+
+
+
+
+
+
+CASEN20222029= CASEN2022 %>%
+filter(CASEN2022$edad >=25 & CASEN2022$edad<=29) 
+
+CASEN20222029$anio=2022
+
+
+CASEN20222029$o1=ifelse(CASEN20222029$o1==2,0,1)
+
+
+#Incluimos las variables de interés en nuestro dataframe
+
+
+df2022B = CASEN20222029 %>%select(anio, edad, dau, o1, o6, esc, expr, sexo, e3)
+
+df2022B$o6 <- ifelse(is.na(df2022B$o6), NA, ifelse(df2022B$o6 == 1, 1, 0))
+
+
+
+df2022B$qau= ifelse(CASEN20222029$dau== 1 & 2, 1, ifelse(CASEN20222029$dau== 3 & 4, 2,ifelse(CASEN20222029$dau== 5 & 6, 3,ifelse(CASEN20222029$dau== 7 & 8, 4,ifelse(CASEN20222029$dau== 9 & 10, 5,"NA" )))))
+
+
+
+#Convertimos a 1 como que están estudiando y a 0 los que no.
+
+df2022B$e3= ifelse(is.na(df2022B$e3), NA, ifelse(df2022B$e3 == 1, 1, 0))
+
+
+
+df2022M = df2022B %>%
+  filter(df2022B$sexo ==2)
+
+
+
+
+
+#Multiplicamos por su factor de expansión
+
+df1990M$estud= df1990M$e3*df1990M$expr
+
+
+df2022M$estud= df2022M$e3*df2022M$expr
+
+
+porcent_estud_hom1990=sum(df1990M$estud, na.rm = TRUE)/sum(df1990M$expr,na.rm = TRUE)
+
+
+porcent_estud_hom2022=sum(df2022M$estud, na.rm = TRUE)/sum(df2022M$expr,na.rm = TRUE)
+
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los que trabajan (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listJ <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990M, df2022M)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(5)
+  f <- numeric(5)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:5) {
+    v[i] <- sum(df$estud[df$qau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$qau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 5),
+    quintil = 1:5,
+    estudiando = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listJ[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedJ <- do.call(rbind, resultados_listJ)
+
+# Ver los resultados
+print(resultados_combinedJ)
+
+#Para caclular el promedio dividimos los que están estudiando (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+resultados_combinedJ$promedio= resultados_combinedJ$estudiando/resultados_combinedJ$expr
+
+suma_1990 <- resultados_combinedJ %>%
+  summarise(Suma_Valor = sum(ifelse(anio == 1990, estudiando, 0)))
+
+fe_1990 <- resultados_combinedJ %>%
+  summarise(Suma_Valor = sum(ifelse(anio == 1990, expr, 0)))
+
+
+suma_2022 <- resultados_combinedJ %>%
+  summarise(Suma_Valor = sum(ifelse(anio == 2022, estudiando, 0)))
+
+fe_2022 <- resultados_combinedJ %>%
+  summarise(Suma_Valor = sum(ifelse(anio == 2022, expr, 0)))
+
+
+porcentaje1990= suma_1990$Suma_Valor/fe_1990$Suma_Valor
+
+porcentaje2022= suma_2022$Suma_Valor/fe_2022$Suma_Valor
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_jovenes_estud= ggplot(resultados_combinedJ, aes(x = as.factor(quintil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Hombres Jóvenes Estudiando por Quintil y Año",
+    x = "Quintil",
+    y = "Porcentaje Estudiando",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("MJóvenesEstud.png", plot = grafico_jovenes_estud, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+```{r}
+
+#################       SECTORES       #######################
+
+
+##### Jovenes
+
+
+df19904dec= CASEN1990 %>% 
+  filter(CASEN1990$dau<=4)
+
+
+
+df19904dec <- df19904dec %>%
+  mutate(rama = as.numeric(substr(as.character(df19904dec$o6), 1, 1)))
+
+
+df19904dec$rama= ifelse(df19904dec$rama== 0, "Agricultura, caza, silvicultura y pesca", ifelse(df19904dec$rama== 1, "Explotación de minas y canteras", ifelse(df19904dec$rama==2, "Industrias manufactureras", ifelse(df19904dec$rama==3, "Construcción", ifelse(df19904dec$rama== 4, "Comercio", ifelse(df19904dec$rama==5, "Servicios de gobierno y financieros", ifelse(df19904dec$rama==6, "Servicios personales y de los hogares", ifelse(df19904dec$rama==7, "Servicios comunales y sociales", ifelse(df19904dec$rama==8, "Transportes, almacenamiento, comunicaciones y servicios de utilidad pública", ifelse(df19904dec$rama==9, "Actividades no bien especificadas", "NA"))))))))))
+
+
+df19904dec= df19904dec %>% 
+filter(df19904dec$edad >=25 & df19904dec$edad<=29) 
+
+
+df19904dec= df19904dec %>% 
+filter(df19904dec$rama != "NA") 
+
+
+porcentajes_df <- df19904dec %>%
+  group_by(rama) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+
+
+
+############ 2022
+
+
+
+
+df20224dec= CASEN2022 %>% 
+  filter(CASEN2022$dau<=4)
+
+
+
+
+df20224dec$rama1= ifelse(df20224dec$rama1== 1, "Agricultura, ganadería, silvicultura y pesca", ifelse(df20224dec$rama1==2, "Explotación de minas y canteras", ifelse(df20224dec$rama1==3, "Industrias manufactureras", ifelse(df20224dec$rama1== 4, "Suministro de electricidad, gas, vapor y aire acondicionado", ifelse(df20224dec$rama1==5, "Suministro de agua; evacuación de aguas residuales, gestión de desechos y descontaminación", ifelse(df20224dec$rama1==6, "Construcción", ifelse(df20224dec$rama1==7, "Comercio al por mayor y al por menor; reparación de vehículos automotores y motocicletas
+", ifelse(df20224dec$rama1==8, "Transporte y almacenamiento
+", ifelse(df20224dec$rama1==9, "Actividades de alojamiento y de servicio de comidas", ifelse(df20224dec$rama1== 10, "Información y comunicaciones
+", ifelse(df20224dec$rama1==11, "Actividades financieras y de seguros", ifelse(df20224dec$rama1== 12, "Actividades inmobiliarias", ifelse(df20224dec$rama1== 13, "Actividades profesionales, científicas y técnicas
+",ifelse(df20224dec$rama1== 14, "Actividades de servicios administrativos y de apoyo",ifelse(df20224dec$rama1== 15, "Administración pública y defensa; planes de seguridad social de afiliación obligatoria",ifelse(df20224dec$rama1== 16, " Enseñanza",ifelse(df20224dec$rama1== 17, "Actividades de atención de la salud humana y de asistencia social",ifelse(df20224dec$rama1== 18, "Actividades artísticas, de entretenimiento y recreativas",ifelse(df20224dec$rama1== 19, "Otras actividades de servicios",ifelse(df20224dec$rama1== 20, "Actividades de los hogares como empleadores; actividades no diferenciadas de los hogares como productores de bienes y servicios para uso propio
+",ifelse(df20224dec$rama1== 21, "Actividades de organizaciones y órganos extraterritoriales", ifelse(df20224dec$rama1== -99, "No responde", ifelse(df20224dec$rama1== -88, "No sabe", ifelse(df20224dec$rama1== -66, "Glosa no permite clasificación", "NA"))))))))))))))))))))))))
+
+
+
+
+
+df20224dec= df20224dec %>% 
+filter(df20224dec$edad >=25 & df20224dec$edad<=29) 
+
+
+df20224dec= df20224dec %>% 
+filter(df20224dec$rama1 != "NA") 
+
+
+porcentajes_df22<- df20224dec %>%
+  group_by(rama1) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+
+
+
+
+df20224dec$area =ifelse(df20224dec$area ==1, 1,0)
+
+
+
+
+
+
+porcentajes_rural22<- df20224dec %>%
+  group_by(area) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+
+
+
+
+
+
+
+df19904dec$z =ifelse(df19904dec$z ==1, 1,0)
+
+
+
+
+
+
+porcentajes_rural90<- df19904dec %>%
+  group_by(z) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+######### Ocupados todos 
+
+library(dplyr)
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6)
+
+df1990T$o1=ifelse(df1990T$o1==2,0,1)
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1,esc, expr,sexo,o6)
+
+df2022T$o1=ifelse(df2022T$o1==2,0,1)
+
+
+
+df1990T$ocupacion= df1990T$o1*df1990T$expr
+
+df2022T$ocupacion= df2022T$o1*df2022T$expr
+
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listT <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T, df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$ocupacion[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    ocupacion = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listT[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedT <- do.call(rbind, resultados_listT)
+
+# Ver los resultados
+print(resultados_combinedT)
+
+
+#Para caclular el promedio dividimos los ocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+resultados_combinedT$promedio= resultados_combinedT$ocupacion/resultados_combinedT$expr
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_t= ggplot(resultados_combinedT, aes(x = as.factor(decil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Ocupados por Decil y Año",
+    x = "Decil",
+    y = "Porcentaje de Ocupados",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("Ocupados.png", plot = grafico_t, width = 10, height = 6, dpi = 300)
+
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+##############Inactivos todos
+
+
+
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o3)
+
+names(df1990T)[names(df1990T) == "o3"] <- "o6"
+
+
+df1990T$o6 <- ifelse(is.na(df1990T$o6), NA, ifelse(df1990T$o6 == 1, 0, 1))
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6)
+
+df2022T$o6 <- ifelse(is.na(df2022T$o6), NA, ifelse(df2022T$o6 == 1, 0, 1))
+
+
+
+#Se multiplica la dymmy inactivo por su respectivo factor de expansión
+
+
+
+df1990T$inactiv= df1990T$o6*df1990T$expr
+
+
+df2022T$inactiv= df2022T$o6*df2022T$expr
+
+
+
+
+
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los inactivos (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listQ <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T,df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$inactiv[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    inactiv = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listQ[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedQ <- do.call(rbind, resultados_listQ)
+
+# Ver los resultados
+print(resultados_combinedQ)
+
+
+
+#Para caclular el promedio dividimos los inactivos (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+resultados_combinedQ$promedio= resultados_combinedQ$inactiv/resultados_combinedQ$expr
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_inac= ggplot(resultados_combinedQ, aes(x = as.factor(decil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Inactivos por Decil y Año",
+    x = "Decil",
+    y = "Porcentaje de Inactivos",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("Inact.png", plot = grafico_inac, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+
+####Desocupados Todos
+
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, o3, esc, expr,sexo)
+
+df1990T$o3 <- ifelse(is.na(df1990T$o3), NA, ifelse(df1990T$o3 == 1, 1, 0))
+
+names(df1990T)[names(df1990T) == "o3"] <- "o6"
+
+
+
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1, o6, esc, expr,sexo)
+
+df2022T$o6 <- ifelse(is.na(df2022T$o6), NA, ifelse(df2022T$o6 == 1, 1, 0))
+
+
+
+
+
+
+#Se multiplica la dymmy desocupados por su respectivo factor de expansión
+
+df1990T$desocup= df1990T$o6*df1990T$expr
+
+
+
+
+df2022T$desocup= df2022T$o6*df2022T$expr
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los desocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listZ <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T, df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$desocup[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    desocupado = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listZ[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedZ <- do.call(rbind, resultados_listZ)
+
+# Ver los resultados
+print(resultados_combinedZ)
+
+
+#Para caclular el promedio dividimos los desocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+resultados_combinedZ$promedio= resultados_combinedZ$desocup/resultados_combinedZ$expr
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_desocup= ggplot(resultados_combinedZ, aes(x = as.factor(decil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Desocupados por Decil y Año",
+    x = "Decil",
+    y = "Porcentaje de Desocupados",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("Desocup.png", plot = grafico_desocup, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+```{r}
+
+
+#Ruralidad otros años
+
+
+
+save.image(file = "Empleabilidad.RData")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+######### Ocupados todos 
+
+library(dplyr)
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6)
+
+df1990T$o1=ifelse(df1990T$o1==2,0,1)
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1,esc, expr,sexo,o6)
+
+df2022T$o1=ifelse(df2022T$o1==2,0,1)
+
+
+
+df1990T$ocupacion= df1990T$o1*df1990T$expr
+
+df2022T$ocupacion= df2022T$o1*df2022T$expr
+
+CASEN9022=rbind(df1990T, df2022T)
+
+
+porcentaje_ocupados <- aggregate(ocupacion ~ anio, data = CASEN9022, FUN = function(x) sum(x))
+
+
+
+resultados_combinedT$promedio= resultados_combinedT$ocupacion/resultados_combinedT$expr
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_t= ggplot(resultados_combinedT, aes(x = as.factor(anio), y = promedio*100 +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Ocupados por Decil y Año",
+    x = "Decil",
+    y = "Porcentaje de Ocupados",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("Ocupados.png", plot = grafico_t, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+
+##############Inactivos todos
+
+
+
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o3)
+
+names(df1990T)[names(df1990T) == "o3"] <- "o6"
+
+
+df1990T$o6 <- ifelse(is.na(df1990T$o6), NA, ifelse(df1990T$o6 == 1, 0, 1))
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6)
+
+df2022T$o6 <- ifelse(is.na(df2022T$o6), NA, ifelse(df2022T$o6 == 1, 0, 1))
+
+
+
+#Se multiplica la dymmy inactivo por su respectivo factor de expansión
+
+
+
+df1990T$inactiv= df1990T$o6*df1990T$expr
+
+
+df2022T$inactiv= df2022T$o6*df2022T$expr
+
+
+
+
+
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los inactivos (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listQ <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T,df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$inactiv[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    inactiv = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listQ[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedQ <- do.call(rbind, resultados_listQ)
+
+# Ver los resultados
+print(resultados_combinedQ)
+
+
+
+#Para caclular el promedio dividimos los inactivos (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+resultados_combinedQ$promedio= resultados_combinedQ$inactiv/resultados_combinedQ$expr
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_inac= ggplot(resultados_combinedQ, aes(x = as.factor(decil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Inactivos por Decil y Año",
+    x = "Decil",
+    y = "Porcentaje de Inactivos",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("Inact.png", plot = grafico_inac, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+
+####Desocupados Todos
+
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, o3, esc, expr,sexo)
+
+df1990T$o3 <- ifelse(is.na(df1990T$o3), NA, ifelse(df1990T$o3 == 1, 1, 0))
+
+names(df1990T)[names(df1990T) == "o3"] <- "o6"
+
+
+
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1, o6, esc, expr,sexo)
+
+df2022T$o6 <- ifelse(is.na(df2022T$o6), NA, ifelse(df2022T$o6 == 1, 1, 0))
+
+
+
+
+
+
+#Se multiplica la dymmy desocupados por su respectivo factor de expansión
+
+df1990T$desocup= df1990T$o6*df1990T$expr
+
+
+
+
+df2022T$desocup= df2022T$o6*df2022T$expr
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los desocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listZ <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T, df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$desocup[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    desocupado = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listZ[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedZ <- do.call(rbind, resultados_listZ)
+
+# Ver los resultados
+print(resultados_combinedZ)
+
+
+#Para caclular el promedio dividimos los desocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+resultados_combinedZ$promedio= resultados_combinedZ$desocup/resultados_combinedZ$expr
+
+
+
+
+
+library(ggplot2)
+
+# Crear el gráfico de barras
+grafico_desocup= ggplot(resultados_combinedZ, aes(x = as.factor(decil), y = promedio*100, fill = as.factor(anio))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Porcentaje de Desocupados por Decil y Año",
+    x = "Decil",
+    y = "Porcentaje de Desocupados",
+    fill = "Año"
+  ) +
+  scale_x_discrete(breaks = as.character(1:10)) +
+  theme_minimal()
+
+
+ggsave("Desocup.png", plot = grafico_desocup, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+##########Ocupados Todos 
+library(dplyr)
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6,o7)
+
+df1990T =  df1990T %>%
+filter(df1990T$edad >=25 & df1990T$edad<=29)
+
+
+df1990T = df1990T %>%
+  filter(df1990T$sexo ==2)
+
+
+df1990T$o1=ifelse(df1990T$o1==2,0,1)
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1,esc, expr,sexo,o6, o30)
+
+df2022T= df2022T %>%
+filter(df2022T$edad >=25 & df2022T$edad<=29)
+
+df2022T = df2022T %>%
+  filter(df2022T$sexo ==2)
+
+df2022T$o1=ifelse(df2022T$o1==2,0,1)
+
+
+
+
+df1990T$ocupacion= df1990T$o1*df1990T$expr
+
+df2022T$ocupacion= df2022T$o1*df2022T$expr
+
+
+
+
+
+
+
+calcular_sumas <- function(df, year) {
+  suma_var1 <- sum(df$ocupacion, na.rm = TRUE)
+  suma_var2 <- sum(df$expr, na.rm = TRUE)
+  ratio <- suma_var1 / suma_var2
+  
+  data.frame(
+    year = year,
+    suma_var1 = suma_var1,
+    suma_var2 = suma_var2,
+    Ocupados = ratio
+  )
+}
+
+# Aplicar la función a ambos dataframes
+resultados_2022 <- calcular_sumas(df2022T, 2022)
+resultados_1990 <- calcular_sumas(df1990T, 1990)
+
+# Combinar los resultados en un solo dataframe
+resultados_combinedW <- bind_rows(resultados_1990, resultados_2022)
+
+
+
+resultados_combinedW <- resultados_combinedW %>%
+  select(year, Ocupados)
+
+
+
+
+library(ggplot2)
+
+ggplot(resultados_combinedW, aes(x = factor(year), y = Ocupados)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Ratio de suma_var1/suma_var2 por Año",
+       x = "Año",
+       y = "Ratio suma_var1/suma_var2") +
+  theme_minimal()
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+####Desocupados Todos
+
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6,o7)
+
+df1990T =  df1990T %>%
+filter(df1990T$edad >=25 & df1990T$edad<=29)
+
+df1990T = df1990T %>%
+  filter(df1990T$sexo ==2)
+
+
+df1990T$o3 <- ifelse(is.na(df1990T$o3), NA, ifelse(df1990T$o3 == 1, 1, 0))
+
+
+
+names(df1990T)[names(df1990T) == "o3"] <- "o6"
+
+
+
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1,esc, expr,sexo,o6, o30)
+
+df2022T= df2022T %>%
+filter(df2022T$edad >=25 & df2022T$edad<=29)
+
+df2022T = df2022T %>%
+  filter(df2022T$sexo ==2)
+
+
+df2022T$o6 <- ifelse(is.na(df2022T$o6), NA, ifelse(df2022T$o6 == 1, 1, 0))
+
+
+
+
+
+
+#Se multiplica la dymmy desocupados por su respectivo factor de expansión
+
+df1990T$desocup= df1990T$o6*df1990T$expr
+
+
+
+
+df2022T$desocup= df2022T$o6*df2022T$expr
+
+
+calcular_sumas <- function(df, year) {
+  suma_var1 <- sum(df$desocup, na.rm = TRUE)
+  suma_var2 <- sum(df$expr, na.rm = TRUE)
+  ratio <- suma_var1 / suma_var2
+  
+  data.frame(
+    year = year,
+    suma_var1 = suma_var1,
+    suma_var2 = suma_var2,
+    Desocupados = ratio
+  )
+}
+
+# Aplicar la función a ambos dataframes
+resultados_2022 <- calcular_sumas(df2022T, 2022)
+resultados_1990 <- calcular_sumas(df1990T, 1990)
+
+# Combinar los resultados en un solo dataframe
+resultados_combinedWW <- bind_rows(resultados_1990, resultados_2022)
+
+
+
+resultados_combinedWW <- resultados_combinedWW %>%
+  select(year, Desocupados)
+
+
+
+
+
+ggplot(resultados_combinedWW, aes(x = factor(year), y = Desocupados)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Ratio de suma_var1/suma_var2 por Año",
+       x = "Año",
+       y = "Ratio suma_var1/suma_var2") +
+  theme_minimal()
+
+
+
+
+
+
+```
+
+
+```{r}
+
+
+##############Inactivos todos
+
+
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6,o7)
+
+df1990T =  df1990T %>%
+filter(df1990T$edad >=25 & df1990T$edad<=29)
+
+df1990T = df1990T %>%
+  filter(df1990T$sexo ==1)
+
+
+suma1990<- df1990T %>%
+  group_by(dau) %>%
+  summarise(count= sum(expr))
+
+
+
+names(df1990T)[names(df1990T) == "o3"] <- "o6"
+
+
+df1990T$o6 <- ifelse(is.na(df1990T$o6), NA, ifelse(df1990T$o6 == 1, 0, 1))
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1,esc, expr,sexo,o6, o30)
+
+df2022T= df2022T %>%
+filter(df2022T$edad >=25 & df2022T$edad<=29)
+
+df2022T = df2022T %>%
+  filter(df2022T$sexo ==1)
+
+
+suma2022<- df2022T %>%
+  group_by(dau) %>%
+  summarise(count= sum(expr))
+
+df2022T$o6 <- ifelse(is.na(df2022T$o6), NA, ifelse(df2022T$o6 == 1, 0, 1))
+
+
+
+#Se multiplica la dymmy inactivo por su respectivo factor de expansión
+
+
+
+df1990T$inactiv= df1990T$o6*df1990T$expr
+
+
+df2022T$inactiv= df2022T$o6*df2022T$expr
+
+
+calcular_sumas <- function(df, year) {
+  suma_var1 <- sum(df$inactiv, na.rm = TRUE)
+  suma_var2 <- sum(df$expr, na.rm = TRUE)
+  ratio <- suma_var1 / suma_var2
+  
+  data.frame(
+    year = year,
+    suma_var1 = suma_var1,
+    suma_var2 = suma_var2,
+    Inactivos = ratio
+  )
+}
+
+# Aplicar la función a ambos dataframes
+resultados_2022 <- calcular_sumas(df2022T, 2022)
+resultados_1990 <- calcular_sumas(df1990T, 1990)
+
+# Combinar los resultados en un solo dataframe
+resultados_combinedWWW <- bind_rows(resultados_1990, resultados_2022)
+
+
+
+
+resultados_combinedWWW <- resultados_combinedWWW %>%
+  select(year, Inactivos)
+
+
+
+
+
+
+ggplot(resultados_combinedWWW, aes(x = factor(year), y = ratio)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Ratio de suma_var1/suma_var2 por Año",
+       x = "Año",
+       y = "Ratio suma_var1/suma_var2") +
+  theme_minimal()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+#Cuenta Propia
+
+library(dplyr)
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6,o7)
+
+df1990T =  df1990T %>%
+filter(df1990T$edad >=25 & df1990T$edad<=29)
+
+df1990T = df1990T %>%
+  filter(df1990T$sexo ==1)
+
+df1990T$o7= ifelse(df1990T$o7==2,1,0)
+
+
+df1990T$o7 <- ifelse(is.na(df1990T$o7), NA, ifelse(df1990T$o7 == 2, 1, 0))
+
+df1990T = df1990T %>%
+  filter(df1990T$o1==1)
+
+
+
+
+
+
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1,esc, expr,sexo,o6, o15)
+
+df2022T= df2022T %>%
+filter(df2022T$edad >=25 & df2022T$edad<=29)
+
+df2022T = df2022T %>%
+  filter(df2022T$sexo ==1)
+
+
+
+names(df2022T)[names(df2022T) == "o15"] <- "o7"
+
+
+df2022T$o7 <- ifelse(is.na(df2022T$o7), NA, ifelse(df2022T$o7 == 2, 0, 1))
+
+
+
+df2022T = df2022T %>%
+  filter(df2022T$o1==1)
+
+
+
+
+
+
+
+df1990T$cuentprop= df1990T$o7*df1990T$expr
+
+
+df2022T$cuentprop= df2022T$o7*df2022T$expr
+
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los desocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listZ <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T, df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$cuentprop[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    CuentaPropia = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listZ[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedZ <- do.call(cbind, resultados_listZ)
+
+# Ver los resultados
+
+
+#Para caclular el promedio dividimos los desocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+colnames(resultados_combinedZ) <- c("anio", "decil","cuentaprop","expr","Anio", "Decil","Cuentaprop","Expr")
+
+
+resultados_combinedZ$promedio90=resultados_combinedZ$cuentaprop/resultados_combinedZ$expr
+
+
+
+resultados_combinedZ$promedio22=resultados_combinedZ$Cuentaprop/resultados_combinedZ$Expr
+
+
+resultados_combinedZ$difcp=resultados_combinedZ$promedio22-resultados_combinedZ$promedio90
+
+
+
+#### Asalariados
+
+
+
+
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6,o7)
+
+df1990T =  df1990T %>%
+filter(df1990T$edad >=25 & df1990T$edad<=29)
+
+df1990T = df1990T %>%
+  filter(df1990T$sexo ==1)
+
+df1990T$o7 <- ifelse(is.na(df1990T$o7), NA, ifelse(df1990T$o7 == 2, 0, ifelse(df1990T$o7==0,0,ifelse(df1990T$o7==1,0,ifelse(df1990T$o7==8,0,1)))))
+
+
+
+
+
+
+
+
+
+
+
+df2022T = CASEN2022 %>% select(anio, edad, dau, o1,esc, expr,sexo,o6, o15)
+
+df2022T= df2022T %>%
+filter(df2022T$edad >=25 & df2022T$edad<=29)
+
+df2022T = df2022T %>%
+  filter(df2022T$sexo ==1)
+
+
+names(df2022T)[names(df2022T) == "o15"] <- "o7"
+
+
+
+df2022T$o7 <- ifelse(is.na(df2022T$o7), NA, ifelse(df2022T$o7 == 2, 0, ifelse(df2022T$o7==1,0,ifelse(df2022T$o7==9,0,1))))
+
+
+
+
+
+
+
+
+df1990T$asalar= df1990T$o7*df1990T$expr
+
+
+df2022T$asalar= df2022T$o7*df2022T$expr
+
+
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los desocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listZZ <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T, df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$asalar[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    Asalariados = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listZZ[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedZZ <- do.call(cbind, resultados_listZZ)
+
+# Ver los resultados
+print(resultados_combinedZZ)
+
+
+#Para caclular el promedio dividimos los desocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+colnames(resultados_combinedZZ) <- c("anio", "decil","asalariados","expr","Anio", "Decil","Asalariados","Expr")
+
+
+resultados_combinedZZ$promedio90=resultados_combinedZZ$asalariados/resultados_combinedZZ$expr
+
+
+
+resultados_combinedZZ$promedio22=resultados_combinedZZ$Asalariados/resultados_combinedZZ$Expr
+
+
+resultados_combinedZZ$difa=resultados_combinedZZ$promedio22-resultados_combinedZZ$promedio90
+
+
+
+
+
+
+cpya=merge(resultados_combinedZ, resultados_combinedZZ, by="Decil")
+
+names(cpya)[names(cpya) == "difcp"] <- "Cuenta_Propia"
+
+names(cpya)[names(cpya) == "difa"] <- "Asalariados_"
+
+
+
+
+
+library(tidyr)
+library(ggplot2)
+
+# Convertir a formato largo
+cpya <- cpya %>%
+  pivot_longer(cols = c(Cuenta_Propia, Asalariados_), names_to = "Variable", values_to = "Valor")
+
+
+# Crear el gráfico de barras apiladas
+CuentaPropia=ggplot(cpya, aes(x = Decil, y = Valor*100, fill = Variable)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Gráfico de Barras Apiladas", x = "Categoría", y = "Valor") +
+  scale_x_continuous(breaks = seq(min(cpya$Decil), max(cpya$Decil), by = 1)) +
+  theme_minimal()
+
+
+
+ggsave("CuentaPropia.png", plot = CuentaPropia, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+#Formales e Informales
+
+
+#Formales
+
+library(dplyr)
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6,o7,o11)
+
+df1990T =  df1990T %>%
+filter(df1990T$edad >=25 & df1990T$edad<=29)
+
+df1990T = df1990T %>%
+  filter(df1990T$sexo ==1)
+
+df1990T$o11 <- ifelse(is.na(df1990T$o11), NA, ifelse(df1990T$o11 == 7,0,ifelse(df1990T$o11==8,0,1)))
+
+
+df1990T = df1990T %>%
+  filter(df1990T$o1==1)
+
+
+
+
+
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1,esc, expr,sexo,o6, o30,o32)
+
+df2022T= df2022T %>%
+filter(df2022T$edad >=25 & df2022T$edad<=29)
+
+df2022T = df2022T %>%
+  filter(df2022T$sexo ==1)
+
+
+df2022T$o30= ifelse(df2022T$o30==2,1,0)
+
+
+
+
+df2022T$o32 <- ifelse(is.na(df2022T$o32), NA, ifelse(df2022T$o32 == -88,0,ifelse(df2022T$o32==6,0,1)))
+
+
+names(df2022T)[names(df2022T) == "o32"] <- "o11"
+
+
+
+
+df2022T = df2022T %>%
+  filter(df2022T$o1==1)
+
+
+
+
+
+
+
+df1990T$form= df1990T$o11*df1990T$expr
+
+
+df2022T$form= df2022T$o11*df2022T$expr
+
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los desocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listL <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T, df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$form[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    Formales = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listL[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedL <- do.call(cbind, resultados_listL)
+
+# Ver los resultados
+
+
+#Para caclular el promedio dividimos los desocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+colnames(resultados_combinedL) <- c("anio", "decil","formales","expr","Anio", "Decil","Formales","Expr")
+
+
+resultados_combinedL$promedio90=resultados_combinedL$formales/resultados_combinedL$expr
+
+
+
+resultados_combinedL$promedio22=resultados_combinedL$Formales/resultados_combinedL$Expr
+
+
+resultados_combinedL$diffm=resultados_combinedL$promedio22-resultados_combinedL$promedio90
+
+
+
+#### Informales
+
+
+
+
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6,o7,o11)
+
+df1990T =  df1990T %>%
+filter(df1990T$edad >=25 & df1990T$edad<=29)
+
+df1990T = df1990T %>%
+  filter(df1990T$sexo ==1)
+
+df1990T$o7 <- ifelse(is.na(df1990T$o7), NA, ifelse(df1990T$o7 == 2, 0, ifelse(df1990T$o7==0,0,ifelse(df1990T$o7==1,0,ifelse(df1990T$o7==8,0,1)))))
+
+
+
+df1990T$o11 <- ifelse(is.na(df1990T$o11), NA, ifelse(df1990T$o11 == 7,1,ifelse(df1990T$o11==8,1,0)))
+
+
+
+
+
+
+
+
+
+
+df2022T = CASEN2022 %>% select(anio, edad, dau, o1,esc, expr,sexo,o6, o30,o32)
+
+df2022T= df2022T %>%
+filter(df2022T$edad >=25 & df2022T$edad<=29)
+
+df2022T = df2022T %>%
+  filter(df2022T$sexo ==1)
+
+
+df2022T$o30= ifelse(df2022T$o30==2,1,0)
+
+names(df2022T)[names(df2022T) == "o30"] <- "o7"
+
+
+
+df2022T$o7 <- ifelse(is.na(df2022T$o7), NA, ifelse(df2022T$o7 == 2, 0, ifelse(df2022T$o7==1,0,ifelse(df2022T$o7==9,0,1))))
+
+
+df2022T$o32 <- ifelse(is.na(df2022T$o32), NA, ifelse(df2022T$o32 == -88,1,ifelse(df2022T$o32==6,1,0)))
+
+names(df2022T)[names(df2022T) == "o32"] <- "o11"
+
+
+
+
+
+
+
+
+df1990T$inform= df1990T$o11*df1990T$expr
+
+
+df2022T$inform= df2022T$o11*df2022T$expr
+
+
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los desocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listLL <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T, df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(10)
+  f <- numeric(10)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:10) {
+    v[i] <- sum(df$inform[df$dau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$dau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 10),
+    decil = 1:10,
+    Informales = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listLL[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedLL <- do.call(cbind, resultados_listLL)
+
+# Ver los resultados
+print(resultados_combinedLL)
+
+
+#Para caclular el promedio dividimos los desocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+colnames(resultados_combinedLL) <- c("anio", "decil","informales","expr","Anio", "Decil","Informales","Expr")
+
+
+resultados_combinedLL$promedio90=resultados_combinedLL$informales/resultados_combinedLL$expr
+
+
+
+resultados_combinedLL$promedio22=resultados_combinedLL$Informales/resultados_combinedLL$Expr
+
+
+resultados_combinedLL$difinf=resultados_combinedLL$promedio22-resultados_combinedLL$promedio90
+
+
+
+
+
+
+
+
+inff=merge(resultados_combinedL, resultados_combinedLL, by="Decil")
+
+names(inff)[names(inff) == "diffm"] <- "Formales_"
+
+names(inff)[names(inff) == "difinf"] <- "Informales_"
+
+
+
+library(tidyr)
+library(ggplot2)
+
+# Convertir a formato largo
+inff <- inff %>%
+  pivot_longer(cols = c(Formales_, Informales_), names_to = "Variable", values_to = "Valor")
+
+
+# Crear el gráfico de barras apiladas
+FormalesInformales=ggplot(inff, aes(x = Decil, y = Valor*100, fill = Variable)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Gráfico de Barras Apiladas", x = "Categoría", y = "Valor") +
+  scale_x_continuous(breaks = seq(min(cpya$Decil), max(cpya$Decil), by = 1)) +
+  theme_minimal()
+
+
+
+ggsave("FormalesInformales.png", plot = FormalesInformales, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+
+#Empleo
+
+
+
+library(dplyr)
+
+df1990T = CASEN1990 %>%select(anio, edad, dau, o1, esc, expr,sexo,o6,o7,o11)
+
+df1990T =  df1990T %>%
+filter(df1990T$edad >=25 & df1990T$edad<=29)
+
+df1990T = df1990T %>%
+  filter(df1990T$sexo ==1)
+
+df1990T$o1 <- ifelse(is.na(df1990T$o1), NA, ifelse(df1990T$o1 == 2,0,1))
+
+df1990T$qau= ifelse(df1990T$dau==1 | df1990T$dau==2, 1,ifelse(df1990T$dau==3 | df1990T$dau==4, 2, ifelse(df1990T$dau==5 | df1990T$dau==6, 3,ifelse(df1990T$dau==7 | df1990T$dau==8, 4, ifelse(df1990T$dau==9 | df1990T$dau==10, 5,0 )) )) )
+
+
+
+
+df2022T = CASEN2022 %>%select(anio, edad, dau, o1,esc, expr,sexo,o6, o30,o32)
+
+df2022T= df2022T %>%
+filter(df2022T$edad >=25 & df2022T$edad<=29)
+
+df2022T = df2022T %>%
+  filter(df2022T$sexo ==1)
+
+
+df2022T$o30= ifelse(df2022T$o30==2,1,0)
+
+names(df2022T)[names(df2022T) == "o30"] <- "o7"
+
+
+
+df2022T$o32 <- ifelse(is.na(df2022T$o32), NA, ifelse(df2022T$o32 == -88,0,ifelse(df2022T$o32==6,0,1)))
+
+
+names(df2022T)[names(df2022T) == "o32"] <- "o11"
+
+
+df2022T$o1 <- ifelse(is.na(df2022T$o1), NA, ifelse(df2022T$o1 == 2,0,1))
+
+df2022T$qau= ifelse(df2022T$dau==1 | df2022T$dau==2, 1,ifelse(df2022T$dau==3 | df2022T$dau==4, 2, ifelse(df2022T$dau==5 | df2022T$dau==6, 3,ifelse(df2022T$dau==7 | df2022T$dau==8, 4, ifelse(df2022T$dau==9 | df2022T$dau==10, 5, 0)) )) )
+
+
+
+df1990T$empleo= df1990T$o1*df1990T$expr
+
+
+df2022T$empleo= df2022T$o1*df2022T$expr
+
+
+
+
+
+
+#### Creamos un dataframe que contenga la suma de los desocupados (considerando su factor de expansión) y la suma de los factores de expansión, todo esto por decil y año.
+
+
+
+# Inicializar listas para almacenar los resultados de cada año
+resultados_listLLL <- list()
+
+# Lista de años y nombres de DataFrames correspondientes
+anios <- c(1990, 2022)
+dfs <- list(df1990T, df2022T)
+
+# Iterar sobre cada año y DataFrame
+for (index in seq_along(anios)) {
+  año <- anios[index]
+  df <- dfs[[index]]
+  
+  # Inicializar vectores para almacenar los resultados
+  v <- numeric(5)
+  f <- numeric(5)
+  
+  # Iterar sobre los deciles del 1 al 10
+  for (i in 1:5) {
+    v[i] <- sum(df$empleo[df$qau == i], na.rm = TRUE)
+    f[i] <- sum(df$expr[df$qau == i], na.rm = TRUE)
+  }
+  
+  # Crear un DataFrame con los resultados, añadiendo el año
+  p <- data.frame(
+    anio = rep(año, 5),
+    quintil = 1:5,
+    Formales = v,
+    expr = f
+  )
+  
+  # Almacenar el DataFrame en la lista
+  resultados_listLLL[[as.character(año)]] <- p
+}
+
+# Combinar todos los DataFrames en uno solo
+resultados_combinedLLL <- do.call(cbind, resultados_listLLL)
+
+# Ver los resultados
+
+
+#Para caclular el promedio dividimos los desocupados (considerando su factor de expansión) de cada decil por la suma de los factores de expansión de cada decil.
+
+
+colnames(resultados_combinedLLL) <- c("anio", "quintil","empleo","expr","Anio", "Decil","Empleo","Expr")
+
+
+resultados_combinedLLL$promedio90=resultados_combinedLLL$empleo/resultados_combinedLLL$expr
+
+
+
+resultados_combinedLLL$promedio22=resultados_combinedLLL$Empleo/resultados_combinedLLL$Expr
+
+
+resultados_combinedLLL$difemp=resultados_combinedLLL$promedio22-resultados_combinedLLL$promedio90
+
+
+
+
+
+
+
+
+
+
+library(tidyr)
+library(ggplot2)
+
+# Convertir a formato largo
+resultados_combinedLLL <- resultados_combinedLLL %>%
+  pivot_longer(cols = difemp, names_to = "Variable", values_to = "Valor")
+
+
+# Crear el gráfico de barras apiladas
+Empleo=ggplot(resultados_combinedLLL, aes(x = Decil, y = Valor*100, fill = Variable)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Gráfico de Barras Apiladas", x = "Categoría", y = "Valor") +
+  scale_x_continuous(breaks = seq(min(cpya$Decil), max(cpya$Decil), by = 1)) +
+  theme_minimal()
+
+
+
+ggsave("Empleo.png", plot = FormalesInformales, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+# Paso 1: Crear el dataframe con las edades, expr, dau y e3 concatenados
+Vivienda_temp <- CASEN2022 %>%
+  group_by(id_vivienda) %>%
+  summarise(
+    Edades = paste(edad, collapse = ", "),
+    Exprs = paste(expr, collapse = ", "),
+    Dau = paste(dau, collapse = ", "),
+    E3 = paste(e3, collapse = ", "),
+    Trabaja = paste(o1, collapse = ", "),
+    Suma_Expr = sum(expr, na.rm = TRUE)
+  )
+
+# Paso 2: Calcular el número de columnas necesarias
+num_cols_edad <- max(str_count(Vivienda_temp$Edades, ", ")) + 1
+num_cols_expr <- max(str_count(Vivienda_temp$Exprs, ", ")) + 1
+num_cols_dau <- max(str_count(Vivienda_temp$Dau, ", ")) + 1
+num_cols_e3 <- max(str_count(Vivienda_temp$E3, ", ")) + 1
+num_cols_o1 <- max(str_count(Vivienda_temp$Trabaja, ", ")) + 1
+
+# Paso 3: Separar las edades, expr, dau y e3 en columnas distintas
+Vivienda <- Vivienda_temp %>%
+  separate(Edades, into = paste0("Edad_", 1:num_cols_edad), sep = ", ", fill = "right") %>%
+  separate(Exprs, into = paste0("Expr_", 1:num_cols_expr), sep = ", ", fill = "right") %>%
+  separate(Dau, into = paste0("Dau_", 1:num_cols_dau), sep = ", ", fill = "right") %>%
+  separate(E3, into = paste0("E3_", 1:num_cols_e3), sep = ", ", fill = "right") %>%
+  separate(Trabaja, into = paste0("Trabaja_", 1:num_cols_e3), sep = ", ", fill = "right")
+
+# Paso 4: Convertir las columnas de edades, expr, dau y e3 a numéricas
+Vivienda <- Vivienda %>%
+  mutate(across(starts_with("Edad_"), as.numeric)) %>%
+  mutate(across(starts_with("Expr_"), as.numeric)) %>%
+  mutate(across(starts_with("Dau_"), as.numeric)) %>%
+  mutate(across(starts_with("E3_"), as.numeric)) %>%
+  mutate(across(starts_with("Trabaja_"), as.numeric))
+
+# Paso 5: Crear la columna dummy
+Vivienda <- Vivienda %>%
+  mutate(dummy = ifelse(rowSums(across(starts_with("Edad_"), ~ . >= 25 & . <= 29), na.rm = TRUE) == num_cols_edad & 
+                        rowSums(is.na(across(starts_with("Edad_")))) == 0, 1, 0))
+
+# Vivienda ahora contiene las edades, expr, dau, e3 en columnas separadas y la columna dummy
+
+
+
+
+
+Viviendaz = Vivienda %>%
+  filter(Vivienda$Edad_1>=25 & Vivienda$Edad_1<=29)
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Edad_2>=25 & Viviendaz$Edad_2<=29 |is.na(Viviendaz$Edad_2))
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Edad_3>=25 & Viviendaz$Edad_3<=29 |is.na(Viviendaz$Edad_3))
+
+
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Edad_4>=25 & Viviendaz$Edad_4<=29 |is.na(Viviendaz$Edad_4))
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Edad_5>=25 & Viviendaz$Edad_5<=29 |is.na(Viviendaz$Edad_5))
+
+
+
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$E3_1==1)
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$E3_2==1 |is.na(Viviendaz$E3_2))
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$E3_3==1|is.na(Viviendaz$E3_3))
+
+
+
+Viviendaz$Estud_1=Viviendaz$E3_1*Viviendaz$Expr_1
+
+Viviendaz$Estud_2=Viviendaz$E3_2*Viviendaz$Expr_2
+
+Viviendaz$Estud_3=Viviendaz$E3_3*Viviendaz$Expr_3
+
+
+
+
+  
+
+# Sumar las columnas Estud_1, Estud_2 y Estud_3, manejando NA
+Viviendaz <- Viviendaz %>%
+  mutate(Estud_total = rowSums(across(starts_with("Estud_")), na.rm = TRUE))
+
+
+# Sumar los valores de la columna Expr_1, manejando NA
+numero_casa_jovenes <- sum(Viviendaz$Expr_1, na.rm = TRUE)
+
+
+
+
+
+
+ggplot(Viviendaz, aes(x = factor(Dau_1), y = Expr_1)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Decil", y = "Cantidad", title = "Estudiantes que viven con jóvenes, estudian") +
+  theme_minimal()
+
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+# Paso 1: Crear el dataframe con las edades, expr, dau y e3 concatenados
+Vivienda_temp <- CASEN2022 %>%
+  group_by(id_vivienda) %>%
+  summarise(
+    Edades = paste(edad, collapse = ", "),
+    Exprs = paste(expr, collapse = ", "),
+    Dau = paste(dau, collapse = ", "),
+    E3 = paste(e3, collapse = ", "),
+    Trabaja = paste(o1, collapse = ", "),
+    Suma_Expr = sum(expr, na.rm = TRUE)
+  )
+
+# Paso 2: Calcular el número de columnas necesarias
+num_cols_edad <- max(str_count(Vivienda_temp$Edades, ", ")) + 1
+num_cols_expr <- max(str_count(Vivienda_temp$Exprs, ", ")) + 1
+num_cols_dau <- max(str_count(Vivienda_temp$Dau, ", ")) + 1
+num_cols_e3 <- max(str_count(Vivienda_temp$E3, ", ")) + 1
+num_cols_o1 <- max(str_count(Vivienda_temp$Trabaja, ", ")) + 1
+
+# Paso 3: Separar las edades, expr, dau y e3 en columnas distintas
+Vivienda <- Vivienda_temp %>%
+  separate(Edades, into = paste0("Edad_", 1:num_cols_edad), sep = ", ", fill = "right") %>%
+  separate(Exprs, into = paste0("Expr_", 1:num_cols_expr), sep = ", ", fill = "right") %>%
+  separate(Dau, into = paste0("Dau_", 1:num_cols_dau), sep = ", ", fill = "right") %>%
+  separate(E3, into = paste0("E3_", 1:num_cols_e3), sep = ", ", fill = "right") %>%
+  separate(Trabaja, into = paste0("Trabaja_", 1:num_cols_e3), sep = ", ", fill = "right")
+
+# Paso 4: Convertir las columnas de edades, expr, dau y e3 a numéricas
+Vivienda <- Vivienda %>%
+  mutate(across(starts_with("Edad_"), as.numeric)) %>%
+  mutate(across(starts_with("Expr_"), as.numeric)) %>%
+  mutate(across(starts_with("Dau_"), as.numeric)) %>%
+  mutate(across(starts_with("E3_"), as.numeric)) %>%
+  mutate(across(starts_with("Trabaja_"), as.numeric))
+
+# Paso 5: Crear la columna dummy
+Vivienda <- Vivienda %>%
+  mutate(dummy = ifelse(rowSums(across(starts_with("Edad_"), ~ . >= 25 & . <= 29), na.rm = TRUE) == num_cols_edad & 
+                        rowSums(is.na(across(starts_with("Edad_")))) == 0, 1, 0))
+
+# Vivienda ahora contiene las edades, expr, dau, e3 en columnas separadas y la columna dummy
+
+
+
+
+
+Viviendaz = Vivienda %>%
+  filter(Vivienda$Edad_1>=25 & Vivienda$Edad_1<=29)
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Edad_2>=25 & Viviendaz$Edad_2<=29 |is.na(Viviendaz$Edad_2))
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Edad_3>=25 & Viviendaz$Edad_3<=29 |is.na(Viviendaz$Edad_3))
+
+
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Edad_4>=25 & Viviendaz$Edad_4<=29 |is.na(Viviendaz$Edad_4))
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Edad_5>=25 & Viviendaz$Edad_5<=29 |is.na(Viviendaz$Edad_5))
+
+
+
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$E3_1==1)
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$E3_2==1 |is.na(Viviendaz$E3_2))
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$E3_3==1|is.na(Viviendaz$E3_3))
+
+
+
+Viviendaz$Estud_1=Viviendaz$E3_1*Viviendaz$Expr_1
+
+Viviendaz$Estud_2=Viviendaz$E3_2*Viviendaz$Expr_2
+
+Viviendaz$Estud_3=Viviendaz$E3_3*Viviendaz$Expr_3
+
+
+
+
+
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Trabaja_1==1)
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Trabaja_2==1 |is.na(Viviendaz$Trabaja_2))
+
+Viviendaz = Viviendaz %>%
+  filter(Viviendaz$Trabaja_3==1|is.na(Viviendaz$Trabaja_3))
+
+  
+
+  
+
+# Sumar las columnas Estud_1, Estud_2 y Estud_3, manejando NA
+Viviendaz <- Viviendaz %>%
+  mutate(Estud_total = rowSums(across(starts_with("Estud_")), na.rm = TRUE))
+
+
+# Sumar los valores de la columna Expr_1, manejando NA
+numero_casa_jovenes <- sum(Viviendaz$Expr_1, na.rm = TRUE)
+
+
+
+
+
+
+ggplot(Viviendaz, aes(x = factor(Dau_1), y = Expr_1)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Decil", y = "Cantidad", title = "Estudiantes que viven con jóvenes, estudian y trabajan") +
+  theme_minimal()
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+```{r}
+
+#Oaxaca
+
+
+
+library(oaxaca)
+
+library(tidyr)
+
+library(dplyr)
+
+
+
+df1990Oax= CASEN1990 %>%
+  select(z, o1, e2, esc, edad, anio, sexo, dau)
+
+
+df1990Oax= df1990Oax %>%
+  filter(df1990Oax$sexo==1 & df1990Oax$edad >=25 & df1990Oax$edad <=29 & df1990Oax$dau<=4)
+
+
+#1 si rural, 0 urbano
+df1990Oax$z= ifelse(is.na(df1990Oax$z), NA, ifelse(df1990Oax$z==1,0, ifelse(df1990Oax$z==2,1,0)))
+
+df1990Oax$e2= ifelse(is.na(df1990Oax$e2), 0, 1)
+
+df1990Oax$o1= ifelse(is.na(df1990Oax$o1), NA, ifelse(df1990Oax$o1==1,1,0))
+
+
+
+
+df2022Oax= CASEN2022 %>%
+  select(area, o1, e3, esc, edad, anio, sexo, dau)
+
+df2022Oax= df2022Oax %>%
+  filter(df2022Oax$sexo==1 & df2022Oax$edad >=25 & df2022Oax$edad <=29 & df2022Oax$dau<=4)
+
+#1 si rural, 0 urbano
+df2022Oax$area= ifelse(is.na(df2022Oax$area), NA, ifelse(df2022Oax$area==1,0, ifelse(df2022Oax$area==2,1,0)))
+
+names(df2022Oax)[names(df2022Oax) == "area"] <- "z"
+
+
+df2022Oax$e3= ifelse(is.na(df2022Oax$e3), NA, ifelse(df2022Oax$e3==1,1,0))
+
+names(df2022Oax)[names(df2022Oax) == "e3"] <- "e2"
+
+
+df2022Oax$o1= ifelse(is.na(df2022Oax$o1), NA, ifelse(df2022Oax$o1==1,1,0))
+
+
+
+df=rbind(df1990Oax,df2022Oax)
+
+df$z=as.numeric(df$z)
+
+
+df$e2=as.numeric(df$e2)
+
+
+df$o1=as.numeric(df$o1)
+
+
+df$edad=as.numeric(df$edad)
+
+df$esc=as.numeric(df$esc)
+
+
+df$anio=as.numeric(df$anio)
+
+
+
+
+df$anio= ifelse(df$anio ==2022, 1,0)
+
+
+df = df %>% drop_na()
+
+
+
+resultado <- oaxaca(
+  o1 ~ esc + e2 + z + edad | anio, 
+  data = df, 
+  group.weights = NULL,
+  group = "anio", 
+  group.levels = c(1, 0)
+)
+
+
+print(resultado)
+
+resultado[["twofold"]][["overall"]]
+
+
+
+resultado[["threefold"]][["overall"]]
+
+
+resultado$y
+
+
+
+plot(resultado, decomposition = "twofold", group.weight = -1)
+
+
+
+plot(resultado, 
+     decomposition = "twofold", 
+     group.weight = -1, 
+     unexplained.split = TRUE, 
+     components = c("unexplained A", "unexplained B"), 
+     component.labels = c("unexplained A" = "2022", "unexplained B" = "1990"),
+     variables = c("esc", "e2", "z", "edad"), 
+     variable.labels = c("esc" = "Escolaridad", 
+                         "e2" = "Estudia", 
+                         "z" = "Rural", 
+                         "edad" = "Edad"))
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+
+# Filtrar por sexo
+df1990H <- df1990B %>%
+  filter(sexo == 1)
+
+df2022H <- df2022B %>%
+  filter(sexo == 1)
+
+# Crear la variable qau y asignar NA correctamente
+df1990H$qau <- case_when(
+  df1990H$dau %in% c(1, 2) ~ 1,
+  df1990H$dau %in% c(3, 4) ~ 2,
+  df1990H$dau %in% c(5, 6) ~ 3,
+  df1990H$dau %in% c(7, 8) ~ 4,
+  df1990H$dau %in% c(9, 10) ~ 5,
+  TRUE ~ NA_real_  # Usa NA_real_ para valores numéricos
+)
+
+df2022H$qau <- case_when(
+  df2022H$dau %in% c(1, 2) ~ 1,
+  df2022H$dau %in% c(3, 4) ~ 2,
+  df2022H$dau %in% c(5, 6) ~ 3,
+  df2022H$dau %in% c(7, 8) ~ 4,
+  df2022H$dau %in% c(9, 10) ~ 5,
+  TRUE ~ NA_real_  # Usa NA_real_ para valores numéricos
+)
+
+# Sumar la variable 'expr' por qau para 1990, ignorando NA
+sum_1990 <- aggregate(expr ~ dau, data = df1990H, FUN = function(x) sum(x, na.rm = TRUE))
+
+# Sumar la variable 'expr' por qau para 2022, ignorando NA
+sum_2022 <- aggregate(expr ~ dau, data = df2022H, FUN = function(x) sum(x, na.rm = TRUE))
+
+# Añadir una columna de año para identificar cada dataset
+sum_1990$ano <- "1990"
+sum_2022$ano <- "2022"
+
+# Combinar los resultados en un solo dataframe
+sum_combined <- rbind(sum_1990, sum_2022)
+
+# Filtrar los valores NA en la columna qau
+sum_combined <- sum_combined %>%
+  filter(!is.na(dau))
+
+# Crear el gráfico
+Count <- ggplot(sum_combined, aes(x = as.factor(dau), y = expr, fill = ano)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Decil", y = "Suma de expr", fill = "Año") +
+  theme_minimal() +
+  scale_fill_manual(values = c("1990" = "blue", "2022" = "red"))
+
+# Guardar el gráfico
+ggsave("CountH.png", plot = Count, width = 10, height = 6, dpi = 300)
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
